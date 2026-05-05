@@ -1,0 +1,48 @@
+{
+  "name": "@workspace/api-server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "NODE_ENV=development npm run build && npm run start",
+    "build": "npm install --prefix ../Psi-Docs-MVP/lib/api-zod && npm install --prefix ../Psi-Docs-MVP/lib/db && node ./build.mjs",
+    "start": "node --env-file-if-exists=.env --enable-source-maps ./dist/index.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@sparticuz/chromium": "^148.0.0",
+    "@types/pdfkit": "^0.17.6",
+    "@workspace/api-zod": "file:../Psi-Docs-MVP/lib/api-zod",
+    "@workspace/db": "file:../Psi-Docs-MVP/lib/db",
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2",
+    "drizzle-orm": "^0.45.2",
+    "drizzle-zod": "^0.8.3",
+    "express": "^5",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^1.4.5-lts.1",
+    "pdfkit": "^0.18.0",
+    "pg": "^8.20.0",
+    "pino": "^9",
+    "pino-http": "^10",
+    "puppeteer": "^24.42.0",
+    "puppeteer-core": "^24.42.0",
+    "uuid": "^14.0.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^1.4.12",
+    "@types/node": "^25.3.3",
+    "@types/uuid": "^11.0.0",
+    "esbuild": "0.25.8",
+    "esbuild-plugin-pino": "^2.3.3",
+    "pino-pretty": "^13",
+    "thread-stream": "3.1.0"
+  }
+}
