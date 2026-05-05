@@ -5,15 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "NODE_ENV=development npm run build && npm run start",
-    "build": "npm install --prefix ../Psi-Docs-MVP/lib/api-zod && npm install --prefix ../Psi-Docs-MVP/lib/db && node ./build.mjs",
+    "build": "node ./build.mjs",
     "start": "node --env-file-if-exists=.env --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@sparticuz/chromium": "^148.0.0",
     "@types/pdfkit": "^0.17.6",
-    "@workspace/api-zod": "file:../Psi-Docs-MVP/lib/api-zod",
-    "@workspace/db": "file:../Psi-Docs-MVP/lib/db",
+    "@workspace/api-zod": "file:./lib/api-zod",
+    "@workspace/db": "file:./lib/db",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2",
