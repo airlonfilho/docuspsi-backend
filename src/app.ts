@@ -6,6 +6,26 @@ import { logger } from "./lib/logger.js";
 import { seedDatabase } from "./lib/seed.js";
 
 const app: Express = express();
+const allowedOrigins = (process.env["CORS_ORIGIN"] || process.env["FRONTEND_URL"] || "http://localhost:3000,https://docuspsi.vercel.app")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+function isAllowedOrigin(origin: string | undefined): boolean {
+  return !origin || allowedOrigins.includes(origin);
+}
+
+const corsOptions = {
+  origin(origin, callback) {
+    if (isAllowedOrigin(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  credentials: true,
+};
 
 app.use(
   pinoHttp({
@@ -26,7 +46,8 @@ app.use(
     },
   }),
 );
-app.use(cors({ origin: "*", credentials: true }));
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
