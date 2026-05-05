@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { logger } from "./logger.js";
+import { FRONTEND_TEMPLATE_SEEDS } from "./template-catalog.js";
 
 const TEMPLATES = [
   {
@@ -132,16 +133,35 @@ export async function seedDatabase() {
   logger.info("Seeding database...");
 
   // Seed templates
-  for (const tpl of TEMPLATES) {
+  for (const tpl of [...TEMPLATES, ...FRONTEND_TEMPLATE_SEEDS]) {
     const existing = await db.select().from(documentTemplatesTable).where(eq(documentTemplatesTable.slug, tpl.slug)).limit(1);
+    const now = new Date();
     if (existing.length === 0) {
-      const now = new Date();
       await db.insert(documentTemplatesTable).values({
         ...tpl,
         createdAt: now,
         updatedAt: now,
       });
       logger.info({ slug: tpl.slug }, "Template seeded");
+    } else {
+      await db.update(documentTemplatesTable)
+        .set({
+          name: tpl.name,
+          description: tpl.description,
+          type: tpl.type,
+          category: tpl.category,
+          contentHtml: tpl.contentHtml,
+          fieldsSchema: tpl.fieldsSchema,
+          structure: (tpl as any).structure || { sections: [] },
+          usageNotes: tpl.usageNotes,
+          modality: (tpl as any).modality || null,
+          audience: (tpl as any).audience || null,
+          useCase: (tpl as any).useCase || null,
+          tags: (tpl as any).tags || [],
+          isActive: tpl.isActive,
+          updatedAt: now,
+        })
+        .where(eq(documentTemplatesTable.slug, tpl.slug));
     }
   }
 

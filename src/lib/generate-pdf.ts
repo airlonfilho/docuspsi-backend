@@ -20,8 +20,19 @@ export async function generatePdf(
     
     // Set content with minimal wait condition
     await page.setContent(html, {
-      waitUntil: "domcontentloaded",
+      waitUntil: "networkidle0",
       timeout: 10000,
+    });
+
+    await page.evaluate(async () => {
+      const images = Array.from(document.images);
+      await Promise.all(images.map((img) => {
+        if (img.complete) return Promise.resolve();
+        return new Promise<void>((resolve) => {
+          img.addEventListener("load", () => resolve(), { once: true });
+          img.addEventListener("error", () => resolve(), { once: true });
+        });
+      }));
     });
 
     const pdf = await page.pdf({

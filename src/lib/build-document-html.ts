@@ -369,7 +369,7 @@ function renderHeaderHtml(doc: RenderedDocument): string {
   const secondary = doc.secondaryColor || "#675CF1";
 
   const logoHtml =
-    doc.logoUrl && doc.logoUrl.startsWith("data:image/")
+    doc.logoUrl
       ? `<img src="${doc.logoUrl}" class="header-logo" alt="Logo" />`
       : `<div class="header-monogram" style="background: linear-gradient(135deg, ${primary}, ${secondary});">${getInitials(h.clinicName || h.fullName)}</div>`;
 
@@ -458,11 +458,15 @@ function renderSectionsHtml(doc: RenderedDocument): string {
 function renderSignatureHtml(doc: RenderedDocument): string {
   const sig = doc.signatureBlock;
   const secondSigner = sig.patient || sig.guardian;
+  const signatureImage = doc.signatureUrl
+    ? `<img src="${doc.signatureUrl}" alt="Assinatura" style="max-width: 180px; max-height: 56px; object-fit: contain; margin-bottom: 4px;" />`
+    : "";
 
   return `
 <div class="signature-date">${escHtml(sig.city)}/${escHtml(sig.state)}, ${escHtml(sig.date)}</div>
 <div class="signature-area">
   <div class="signature-block">
+    ${signatureImage}
     <div class="signature-line"></div>
     <div class="signature-name">${escHtml(sig.professional.name)}</div>
     <div class="signature-role">CRP ${escHtml(sig.professional.crp)}</div>
@@ -483,7 +487,7 @@ function renderSignatureHtml(doc: RenderedDocument): string {
 function renderFooterHtml(doc: RenderedDocument): string {
   const prefs = doc.footerPrefs;
 
-  const leftText = prefs?.text || (prefs?.showGeneratedBy !== false ? "Gerado por PsiDocs" : "");
+  const leftText = prefs?.text || (prefs?.showGeneratedBy !== false ? "Gerado por DocusPsi" : "");
 
   const rightParts: string[] = [];
   if (prefs?.showDocumentCode !== false && doc.documentId) {

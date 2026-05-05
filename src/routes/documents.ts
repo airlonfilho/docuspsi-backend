@@ -4,11 +4,10 @@ import { db, documentsTable, patientsTable, documentTemplatesTable, professional
 import { eq, and, desc, or, ilike } from "drizzle-orm";
 import { CreateDocumentBody, UpdateDocumentBody, GetDocumentParams, ListDocumentsQueryParams, UpdateDocumentParams } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth.js";
-import { validatePlanLimits } from "../middlewares/plan-limits.js";
+import { requirePlanFeature, validatePlanLimits } from "../middlewares/plan-limits.js";
 import { renderDocument } from "../lib/render-document.js";
 import { generatePdf } from "../lib/generate-pdf.js";
 import type { AcceptanceInfo } from "../lib/build-document-html.js";
-import { captureProessionalSnapshot, capturePatientSnapshot } from "../lib/snapshots.js";
 
 const router = Router();
 
@@ -92,33 +91,62 @@ router.post("/", validatePlanLimits, async (req, res) => {
       .where(eq(professionalProfilesTable.userId, req.userId!))
       .limit(1);
 
+    if (!profile) {
+      res.status(404).json({ error: "NotFound", message: "Perfil profissional não encontrado" });
+      return;
+    }
+
     const now = new Date();
+    const documentId = uuidv4();
+    const professionalSnapshot = {
+      fullName: profile.fullName,
+      displayName: (profile as any).displayName || profile.fullName,
+      crp: profile.crp,
+      professionalEmail: profile.professionalEmail,
+      phone: profile.phone,
+      city: profile.city,
+      state: profile.state,
+      clinicName: profile.clinicName,
+      documentNumber: documentId,
+      logoUrl: profile.logoUrl,
+      signatureUrl: profile.signatureUrl,
+      documentFooterText: (profile as any).documentFooterText || profile.defaultFooter,
+      documentPrimaryColor: profile.documentPrimaryColor,
+      documentSecondaryColor: profile.documentSecondaryColor,
+      showGeneratedBy: profile.showGeneratedBy,
+      showDocumentCode: profile.showDocumentCode,
+      showIssuedAt: profile.showIssuedAt,
+      showPageNumber: profile.showPageNumber,
+      capturedAt: now.toISOString(),
+    };
+    const patientSnapshot = {
+      fullName: patient.fullName,
+      email: patient.email,
+      phone: patient.phone,
+      cpf: patient.cpf,
+      birthDate: patient.birthDate,
+      capturedAt: now.toISOString(),
+    };
+    const rendered = renderDocument({
+      template,
+      patient,
+      profile,
+      formData: parsed.data.formData || {},
+      documentId,
+    });
+
     const [doc] = await db.insert(documentsTable).values({
-      id: uuidv4(),
+      id: documentId,
       userId: req.userId!,
       patientId: parsed.data.patientId,
       templateId: parsed.data.templateId,
       title: parsed.data.title,
       type: template.slug,
-      status: "rascunho",
+      status: "gerado",
       formData: parsed.data.formData || {},
-      professionalSnapshot: profile ? {
-        fullName: profile.fullName,
-        crp: profile.crp,
-        clinicName: profile.clinicName,
-        email: profile.professionalEmail,
-        phone: profile.phone,
-        city: profile.city,
-        state: profile.state,
-        address: profile.address,
-        website: profile.website,
-        instagram: profile.instagram,
-      } : {},
-      patientSnapshot: {
-        fullName: patient.fullName,
-        email: patient.email,
-        phone: patient.phone,
-      },
+      professionalSnapshot,
+      patientSnapshot,
+      renderedContent: JSON.stringify(rendered),
       createdAt: now,
       updatedAt: now,
     }).returning();
@@ -248,7 +276,7 @@ router.put("/:documentId", async (req, res) => {
  * POST /documents/:documentId/generate
  * Generate the document (render HTML, create public token, set status to "gerado")
  */
-router.post("/:documentId/generate", async (req, res) => {
+router.post("/:documentId/generate", requirePlanFeature("acceptance_link"), async (req, res) => {
   const params = GetDocumentParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: "ValidationError", message: params.error.message });

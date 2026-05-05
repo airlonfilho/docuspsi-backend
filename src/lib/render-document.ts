@@ -30,6 +30,7 @@ export interface RenderedDocument {
   primaryColor?: string;
   secondaryColor?: string;
   logoUrl?: string;
+  signatureUrl?: string;
   footerPrefs?: FooterPrefs;
 }
 
@@ -137,7 +138,139 @@ function modalityLabel(m: string): string {
   return "presencial";
 }
 
-const NOTICE = "Este documento é um modelo de apoio administrativo gerado pelo PsiDocs. Revise todas as informações antes de emitir. A responsabilidade pelo conteúdo final e pela adequação ética e legal é exclusivamente da(o) profissional.";
+const NOTICE = "Este documento e um modelo editavel de apoio administrativo. Revise todas as informacoes antes de emitir. A responsabilidade pelo conteudo final e pela adequacao etica e legal e exclusivamente da(o) profissional.";
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function getPathValue(source: Record<string, unknown>, path: string): unknown {
+  return path.split(".").reduce<unknown>((current, part) => {
+    if (!current || typeof current !== "object") return undefined;
+    return (current as Record<string, unknown>)[part];
+  }, source);
+}
+
+function replaceTemplatePlaceholders(contentHtml: string, values: Record<string, unknown>): string {
+  return contentHtml.replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g, (_match, key: string) => {
+    const value = getPathValue(values, key);
+    if (value == null || value === "") return "";
+    return String(value);
+  });
+}
+
+function htmlToText(contentHtml: string): string {
+  return contentHtml
+    .replace(/<\/(h2|h3|h4|p|li|div|section)>/gi, "\n\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<li[^>]*>/gi, "- ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, "\"")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function buildPlaceholderValues(
+  header: ProfessionalHeader,
+  patient: Patient,
+  profile: ProfessionalProfile,
+  formData: Record<string, unknown>,
+  issueDate: string,
+  documentId?: string,
+) {
+  const sessionValue = formData.sessionValue ?? formData.value ?? (profile as any).defaultSessionValue;
+  const paymentDate = formData.paymentDate ?? formData.date;
+
+  return {
+    professional: {
+      fullName: header.fullName,
+      displayName: (profile as any).displayName || header.fullName,
+      crp: header.crp,
+      professionalEmail: header.email || "",
+      email: header.email || "",
+      phone: header.phone || "",
+      city: header.city,
+      state: header.state,
+      clinicName: header.clinicName || "",
+      documentNumber: documentId || "",
+    },
+    patient: {
+      fullName: patient.fullName || "",
+      name: patient.name || patient.fullName || "",
+      email: patient.email || "",
+      phone: patient.phone || "",
+      cpf: patient.cpf || "",
+      birthDate: patient.birthDate || "",
+    },
+    session: {
+      value: formatCurrency(sessionValue as any),
+      duration: formData.sessionDuration ?? (profile as any).defaultSessionDuration ?? "",
+      modality: formData.modality ?? patient.serviceType ?? "",
+      date: formData.sessionDate ?? "",
+    },
+    payment: {
+      method: formData.paymentMethod ?? (profile as any).defaultPaymentMethod ?? "",
+      date: paymentDate ? formatDate(paymentDate as any) : "",
+      value: formatCurrency(sessionValue as any),
+    },
+    document: {
+      issueDate,
+      id: documentId || "",
+    },
+    observations: formData.observations ?? "",
+    ...formData,
+  };
+}
+
+function renderGenericTemplate(
+  template: DocumentTemplate,
+  header: ProfessionalHeader,
+  patient: Patient,
+  profile: ProfessionalProfile,
+  formData: Record<string, unknown>,
+  today: string,
+  documentId?: string,
+): RenderedDocument {
+  const replaced = replaceTemplatePlaceholders(
+    template.contentHtml || `<h2>${template.name}</h2><p>{{observations}}</p>`,
+    buildPlaceholderValues(header, patient, profile, formData, today, documentId),
+  );
+
+  return {
+    title: template.name,
+    type: template.type,
+    slug: template.slug,
+    professionalHeader: header,
+    infoBlock: {
+      rows: [
+        { label: "Paciente", value: patient.fullName || "" },
+        { label: "Profissional", value: header.fullName },
+        { label: "CRP", value: header.crp },
+        { label: "Data de emissao", value: today },
+      ],
+    },
+    sections: [
+      {
+        title: template.category || template.type || "Documento",
+        content: htmlToText(replaced).replace(/\{\{[^}]+\}\}/g, ""),
+      },
+    ],
+    signatureBlock: {
+      professional: { name: header.fullName, crp: header.crp, role: "Psicologa(o)" },
+      patient: { name: patient.fullName, role: "Paciente / Responsavel" },
+      city: header.city,
+      state: header.state,
+      date: today,
+    },
+    notice: NOTICE,
+    issueDate: today,
+    documentId,
+  };
+}
 
 export function renderDocument(ctx: RenderContext): RenderedDocument {
   const { template, patient, profile, formData, documentId } = ctx;
@@ -161,6 +294,7 @@ export function renderDocument(ctx: RenderContext): RenderedDocument {
     primaryColor: (profile as any).documentPrimaryColor || "#2563EB",
     secondaryColor: (profile as any).documentSecondaryColor || "#675CF1",
     logoUrl: profile.logoUrl || undefined,
+    signatureUrl: profile.signatureUrl || undefined,
     footerPrefs: {
       text: (profile as any).documentFooterText || profile.defaultFooter || undefined,
       showGeneratedBy: (profile as any).showGeneratedBy ?? true,
@@ -169,6 +303,13 @@ export function renderDocument(ctx: RenderContext): RenderedDocument {
       showPageNumber: (profile as any).showPageNumber ?? true,
     } as FooterPrefs,
   };
+
+  if (template.contentHtml) {
+    return {
+      ...renderGenericTemplate(template, header, patient, profile, asRecord(formData), today, documentId),
+      ...profileColors,
+    };
+  }
 
   let result: RenderedDocument;
 

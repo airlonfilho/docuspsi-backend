@@ -4,6 +4,7 @@ import { db, patientsTable } from "@workspace/db";
 import { eq, and, ilike, or } from "drizzle-orm";
 import { CreatePatientBody, UpdatePatientBody, GetPatientParams, UpdatePatientParams, DeletePatientParams, ListPatientsQueryParams } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth.js";
+import { validatePatientLimit } from "../middlewares/plan-limits.js";
 
 const router = Router();
 
@@ -46,7 +47,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", validatePatientLimit, async (req, res) => {
   const parsed = CreatePatientBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "ValidationError", message: parsed.error.message });

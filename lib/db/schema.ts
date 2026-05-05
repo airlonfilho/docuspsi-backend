@@ -25,7 +25,56 @@ export const usersTable = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   role: userRoleEnum("role").notNull().default("professional"),
   plan: userPlanEnum("plan").notNull().default("free"),
+  stripeCustomerId: text("stripe_customer_id"),
+  subscriptionId: text("subscription_id"),
+  trialStartedAt: timestamp("trial_started_at", { withTimezone: true, mode: "date" }),
+  trialEndsAt: timestamp("trial_ends_at", { withTimezone: true, mode: "date" }),
+  subscriptionStatus: text("subscription_status").notNull().default("free"),
+  lastPaymentAt: timestamp("last_payment_at", { withTimezone: true, mode: "date" }),
   ...timestamps,
+});
+
+export const plansTable = pgTable("plans", {
+  id: text("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  priceMonthly: integer("price_monthly").notNull(),
+  priceYearly: integer("price_yearly"),
+  stripeMonthlyPriceId: text("stripe_monthly_price_id"),
+  stripeYearlyPriceId: text("stripe_yearly_price_id"),
+  documentsLimit: integer("documents_limit").notNull(),
+  patientsLimit: integer("patients_limit").notNull(),
+  acceptanceEnabled: boolean("acceptance_enabled").notNull().default(false),
+  customLogoEnabled: boolean("custom_logo_enabled").notNull().default(false),
+  professionalsLimit: integer("professionals_limit"),
+  isActive: boolean("is_active").notNull().default(true),
+  ...timestamps,
+});
+
+export const subscriptionsTable = pgTable("subscriptions", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().unique().references(() => usersTable.id, { onDelete: "cascade" }),
+  planKey: text("plan_key").notNull(),
+  status: text("status").notNull().default("TRIALING"),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id").unique(),
+  stripePriceId: text("stripe_price_id"),
+  currentPeriodStart: timestamp("current_period_start", { withTimezone: true, mode: "date" }),
+  currentPeriodEnd: timestamp("current_period_end", { withTimezone: true, mode: "date" }),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+  trialEndsAt: timestamp("trial_ends_at", { withTimezone: true, mode: "date" }),
+  ...timestamps,
+});
+
+export const stripeEventsTable = pgTable("stripe_events", {
+  id: text("id").primaryKey(),
+  stripeEventId: text("stripe_event_id").notNull().unique(),
+  type: text("type").notNull(),
+  processed: boolean("processed").notNull().default(false),
+  payload: jsonb("payload").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull(),
+  processedAt: timestamp("processed_at", { withTimezone: true, mode: "date" }),
 });
 
 export const professionalProfilesTable = pgTable("professional_profiles", {
@@ -84,7 +133,12 @@ export const documentTemplatesTable = pgTable("document_templates", {
   type: text("type").notNull(),
   contentHtml: text("content_html").notNull(),
   fieldsSchema: jsonb("fields_schema").notNull().default({ fields: [] }),
+  structure: jsonb("structure").notNull().default({ sections: [] }),
   usageNotes: text("usage_notes"),
+  modality: text("modality"),
+  audience: text("audience"),
+  useCase: text("use_case"),
+  tags: jsonb("tags").notNull().default([]),
   isActive: boolean("is_active").notNull().default(true),
   ...timestamps,
 });
@@ -143,6 +197,9 @@ export const leadEventsTable = pgTable("lead_events", {
 });
 
 export type User = typeof usersTable.$inferSelect;
+export type Plan = typeof plansTable.$inferSelect;
+export type Subscription = typeof subscriptionsTable.$inferSelect;
+export type StripeEvent = typeof stripeEventsTable.$inferSelect;
 export type ProfessionalProfile = typeof professionalProfilesTable.$inferSelect;
 export type Patient = typeof patientsTable.$inferSelect;
 export type DocumentTemplate = typeof documentTemplatesTable.$inferSelect;

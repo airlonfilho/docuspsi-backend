@@ -352,41 +352,41 @@ These routes exist separately from the public kit funnel.
 
 ---
 
-## Missing Endpoints For Frontend
-
-Fase 6 is not implemented yet. Frontend should not depend on these routes until backend work is done:
+## Billing / Plans
 
 - `GET /plans`
-  - Desired response: available plans
-  - Status: missing
+  - Auth: not required
+  - Status: implemented
+  - Response: available plans with Stripe price IDs
 
 - `POST /plans/upgrade`
   - Auth: required
-  - Desired body: `{ planId, billingCycle, couponCode? }`
-  - Desired response: checkout URL or trial-start response
-  - Status: missing
+  - Status: implemented
+  - Body: `{ plan: "ESSENTIAL" | "PRO" | "CLINIC", billingCycle: "monthly" }`
+  - Compatibility body: `{ planId: "plan-essential" | "plan-pro" | "plan-clinic", billingCycle: "monthly" }`
+  - Response: `{ checkoutUrl }`
 
 - `GET /subscriptions/current`
   - Auth: required
-  - Desired response: current subscription and features
-  - Status: missing
+  - Status: implemented
+  - Response: current subscription and features, or FREE state when no subscription exists
 
 - `POST /subscriptions/cancel`
   - Auth: required
-  - Desired response: cancellation info
-  - Status: missing
+  - Status: implemented
+  - Response: `{ portalUrl }` from Stripe Customer Portal
 
 - `POST /webhooks/stripe`
-  - Desired behavior: process Stripe subscription/payment events
-  - Status: missing
-  - Note: this route may live outside `/api` depending on webhook routing decision.
+  - Auth: Stripe signature
+  - Status: implemented outside `/api`
+  - Behavior: verifies `STRIPE_WEBHOOK_SECRET`, logs idempotently in `stripe_events`, and syncs subscriptions/payments
 
-Missing supporting backend pieces:
+Supporting backend pieces:
+- `plans` table
 - `subscriptions` table
-- `plan_features` table
 - `stripe_events` table
-- `users.subscriptionId`, `users.trialStartedAt`, `users.trialEndsAt`, `users.subscriptionStatus`, `users.lastPaymentAt`
-- Improved plan middleware for trial/active/canceled/past_due states
+- `users.stripeCustomerId`, `users.subscriptionId`, `users.trialStartedAt`, `users.trialEndsAt`, `users.subscriptionStatus`, `users.lastPaymentAt`
+- Improved plan middleware for active/trialing/canceled/past_due states and `402`/`403` responses
 
 ## Frontend Notes
 

@@ -9,6 +9,8 @@ import dashboardRouter from "./dashboard.js";
 import publicRouter from "./public.js";
 import uploadsRouter from "./uploads.js";
 import leadsRouter from "./leads.js";
+import plansRouter from "./plans.js";
+import subscriptionsRouter from "./subscriptions.js";
 
 const router: IRouter = Router();
 
@@ -22,5 +24,7 @@ router.use("/dashboard", dashboardRouter);
 router.use("/public", publicRouter);
 router.use("/uploads", uploadsRouter);
 router.use("/leads", leadsRouter);
+router.use("/plans", plansRouter);
+router.use("/subscriptions", subscriptionsRouter);
 
 export default router;

@@ -662,10 +662,11 @@ curl -X POST http://localhost:3333/webhooks/stripe \
 - [ ] Fase 4: Testes passando (link público, aceite, rate limit)
 - [x] Fase 5: Formulário kit capturando leads
 - [x] Fase 5: Eventos sendo rastreados no dashboard
-- [ ] Fase 6: Planos listando corretamente
-- [ ] Fase 6: Trial funcionando com vencimento
-- [ ] Fase 6: Webhook Stripe processando
-- [ ] Fase 6: Middleware validando plano antes de ação
+- [x] Fase 6: Planos listando corretamente
+- [x] Fase 6: Checkout Stripe configurado
+- [x] Fase 6: Customer Portal configurado para cancelamento/gestão
+- [x] Fase 6: Webhook Stripe processando
+- [x] Fase 6: Middleware validando plano antes de ação
 
 ---
 
@@ -692,11 +693,11 @@ curl -X POST http://localhost:3333/webhooks/stripe \
 - [x] Adicionar ou validar testes manuais automatizáveis da Fase 5.
 
 ### Fase 6 — Planos
-- [ ] Adicionar schemas/tabelas de assinaturas, features e eventos Stripe.
-- [ ] Adicionar `GET /api/plans`.
-- [ ] Adicionar `POST /api/plans/upgrade`.
-- [ ] Adicionar `GET /api/subscriptions/current`.
-- [ ] Adicionar `POST /api/subscriptions/cancel`.
-- [ ] Adicionar `POST /webhooks/stripe`.
-- [ ] Melhorar middleware de plano para trial, assinatura ativa, `402` e `403`.
-- [ ] Adicionar ou validar testes manuais automatizáveis da Fase 6.
+- [x] Adicionar schemas/tabelas de assinaturas, features e eventos Stripe.
+- [x] Adicionar `GET /api/plans`.
+- [x] Adicionar `POST /api/plans/upgrade`.
+- [x] Adicionar `GET /api/subscriptions/current`.
+- [x] Adicionar `POST /api/subscriptions/cancel`.
+- [x] Adicionar `POST /webhooks/stripe`.
+- [x] Melhorar middleware de plano para trial, assinatura ativa, `402` e `403`.
+- [x] Adicionar ou validar testes manuais automatizáveis da Fase 6.
